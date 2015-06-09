@@ -1,0 +1,18 @@
+{
+    "name": "ABSCore/Core",
+    "version": "0.0.1",
+    "repositories": [
+        {
+            "type": "composer",
+            "url": "https://packages.zendframework.com/"
+        }
+    ],
+    "require": {
+        "php" : ">=5.4.0",
+        "zendframework/zendframework": "2.3.*"
+    },
+    "require-dev": {
+        "phpdocumentor/phpdocumentor": "2.*",
+        "evert/phpdoc-md" : "~0.0.7"
+    }
+}

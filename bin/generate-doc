@@ -1,0 +1,66 @@
+#!/bin/bash
+
+BINDIR=$(pwd)/$(dirname $0)
+VENDOR_BIN="$BINDIR/../vendor/bin"
+
+DOC_PATH=/tmp/phpdocumentor
+
+WIKI_PATH=/tmp/wiki
+WIKI_NAME=abscore-core.wiki
+FULL_WIKI_PATH=$WIKI_PATH/$WIKI_NAME
+
+
+function dependency {
+    which $1 1>/dev/null
+    if [ $? -ne 0 ]; then
+        echo $2
+        exit 1
+    fi
+}
+
+function createDir {
+    if [ -d "$1" ]; then
+        rm -rf $1
+    fi
+    mkdir -p "$1"
+}
+
+dependency git "Please install git"
+dependency $VENDOR_BIN/phpdoc "Please install phpdoc into $VENDOR_BIN"
+dependency $VENDOR_BIN/phpdocmd "Please install phpdocmd into $VENDOR_BIN"
+
+# Cloning wiki
+createDir "$WIKI_PATH"
+cd "$WIKI_PATH"
+git clone git@10.1.1.10:deliverit/"$WIKI_NAME".git 2>/dev/null
+if [ $? -ne 0 ]; then
+    exit
+fi
+
+# create base documentation
+cd "$BINDIR/../"
+
+createDir "$DOC_PATH"
+"$VENDOR_BIN"/phpdoc --template='xml' -d src -t "$DOC_PATH" 2>/dev/null 1>/dev/null
+
+if [ $? -eq 0 ]; then
+    #create a markdown doc
+    "$VENDOR_BIN"/phpdocmd $DOC_PATH/structure.xml $FULL_WIKI_PATH 2>/dev/null 1>/dev/null
+    cd $FULL_WIKI_PATH
+    mv ApiIndex.md home.markdown
+
+    # commit the diffs
+    git status
+    read -p "Press a key to continue..." key
+
+    git difftool --tool=vimdiff --no-prompt
+
+    read -p "Do you want commit this changes? [Y/n]" commit
+    if [ "$commit" != "n" -a "$commit" != "N" ]; then
+        git add . -f
+        git commit
+        if [ $? -eq 0 ]; then
+            git push origin master
+        fi
+    fi
+fi
