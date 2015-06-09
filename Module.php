@@ -24,7 +24,7 @@ class Module
     {
         return array(
             'factories' => array(
-                'ABSCore\Core\Logger' => function ($sm) {
+                'ABSCore\Core\Log\Logger' => function ($sm) {
                     $config = $sm->get('config');
                     $logFile = $config['log']['file'];
                     $priority = $config['log']['priority'];
@@ -48,19 +48,10 @@ class Module
                     return $logger;
                 },
                 'ABSCore\Core\Db\Adapter\Profiler\Profiler' => function ($sm) {
-                    $logger = $sm->get('Logger');
+                    $logger = $sm->get('ABSCore\Core\Log\Logger');
                     return new Db\Adapter\Profiler\Profiler($logger);
                 }
             )
-        );
-    }
-
-    public function getControllerPluginConfig()
-    {
-        return array(
-            'invokables' => array(
-                'ABSCore\Core\Controller\Plugin\Permissions' => 'ABSCore\Core\Controller\Plugin\Permissions',
-            ),
         );
     }
 }

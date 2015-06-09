@@ -31,7 +31,7 @@ class RestController extends AbstractRestfulController
 
     public function getList()
     {
-        $logger = $this->getServiceLocator()->get('Logger');
+        $logger = $this->getServiceLocator()->get('ABSCore\Core\Log\Logger');
         $logger->info(sprintf('Getting list of %s', $this->getPluralName()));
         $perPage = (int)$this->params()->fromQuery('size', 100);
         if ($perPage <= 0) {
@@ -87,7 +87,7 @@ class RestController extends AbstractRestfulController
     }
 
     public function get($id) {
-        $logger = $this->getServiceLocator()->get('Logger');
+        $logger = $this->getServiceLocator()->get('ABSCore\Core\Log\Logger');
         $logger->info(sprintf('Getting %s by id %d', $this->getSingularName(), $id));
 
         $service = $this->getService();
@@ -114,7 +114,7 @@ class RestController extends AbstractRestfulController
 
     public function update($id, $data)
     {
-        $logger = $this->getServiceLocator()->get('Logger');
+        $logger = $this->getServiceLocator()->get('ABSCore\Core\Log\Logger');
         $logger->info(sprintf('Updating %s: id %d', $this->getSingularName(), $id));
 
         $service = $this->getService();
@@ -157,7 +157,7 @@ class RestController extends AbstractRestfulController
 
     public function create($data)
     {
-        $logger = $this->getServiceLocator()->get('Logger');
+        $logger = $this->getServiceLocator()->get('ABSCore\Core\Log\Logger');
         $logger->info(sprintf('Creating a new %s', $this->getSingularName()));
 
         $service = $this->getService();
@@ -195,7 +195,7 @@ class RestController extends AbstractRestfulController
 
     public function delete($id)
     {
-        $logger = $this->getServiceLocator()->get('Logger');
+        $logger = $this->getServiceLocator()->get('ABSCore\Core\Log\Logger');
         $logger->info(sprintf('Removing %s id %d', $this->getSingularName(), $id));
         $service = $this->getService();
         $messages = array();
