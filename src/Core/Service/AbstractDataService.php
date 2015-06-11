@@ -16,6 +16,20 @@ abstract class AbstractDataService implements DataServiceInterface
     use \Zend\ServiceManager\ServiceLocatorAwareTrait;
 
     /**
+     * Flag to set if is soft delete
+     *
+     * @var mixed
+     */
+    protected $isSoftDelete = true;
+
+    /**
+     * Flag to set if should search active entries
+     *
+     * @var bool
+     */
+    protected $isSearchByActive = true;
+
+    /**
      * Data access object
      *
      * @var DataAccessInterface
@@ -155,7 +169,7 @@ abstract class AbstractDataService implements DataServiceInterface
         }
         if (
             is_array($where) && !array_key_exists('active', $where) &&
-            (!array_key_exists('showInactive', $params) || !$params['showInactive'])
+            (!array_key_exists('showInactive', $params) || !$params['showInactive']) && $this->isSearchByActive()
         ) {
             $where['active'] = 1;
             $params['active'] = 1;
@@ -163,6 +177,28 @@ abstract class AbstractDataService implements DataServiceInterface
         $data = $this->getDataAccess()->fetchAll($where, $params);
 
         return $data;
+    }
+
+    public function isSoftDelete()
+    {
+        return $this->isSoftDelete;
+    }
+
+    public function setIsSoftDelete($flag)
+    {
+        $this->isSoftDelete = (bool) $flag;
+        return $this;
+    }
+
+    public function setSearchByActive($flag)
+    {
+        $this->isSearchByActive = (bool) $flag;
+        return $this;
+    }
+
+    public function isSearchByActive()
+    {
+        return $this->isSearchByActive;
     }
 
     /**
@@ -239,8 +275,12 @@ abstract class AbstractDataService implements DataServiceInterface
         }
         $dataAccess = $this->getDataAccess();
         $data = (array)$dataAccess->find($id);
-        $data['active'] = 0;
-        return $dataAccess->save($data);
+        if ($this->isSoftDelete()) {
+            $data['active'] = 0;
+            return $dataAccess->save($data);
+        } else {
+            return $dataAccess->delete(['id' => $id]);
+        }
     }
 
     /**
