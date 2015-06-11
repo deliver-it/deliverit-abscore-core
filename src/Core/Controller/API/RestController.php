@@ -8,17 +8,18 @@ use Zend\View\Model\JsonModel;
 use ABSCore\Core\Exception\UnauthorizedException;
 
 use ABSCore\DataAccess\Exception\UnknowRegistryException;
+use ABSCore\Core\Service;
 
 class RestController extends AbstractRestfulController
 {
 
-    public function __construct($service, $singularName, $pluralName = null)
+    public function __construct(Service\DataServiceInterface $service, $singularName, $pluralName = null)
     {
         $this->setService($service);
         $this->setNames($singularName, $pluralName);
     }
 
-    public function setService($service)
+    public function setService(Service\DataServiceInterface $service)
     {
         $this->service = $service;
         return $this;
@@ -124,7 +125,7 @@ class RestController extends AbstractRestfulController
         try {
             $entry = $service->find($id);
 
-            $form = $service->getForm('edit');
+            $form = $service->getForm(Service\DataServiceInterface::FORM_EDIT);
             $data['id'] = $id;
             $form->setData((array)$data);
             if ($form->isValid()) {
@@ -165,7 +166,7 @@ class RestController extends AbstractRestfulController
         $result = array('messages' => array());
         $messages = &$result['messages'];
 
-        $form = $service->getForm();
+        $form = $service->getForm(Service\DataServiceInterface::FORM_CREATE);
 
         $form->setData($data);
         try {
