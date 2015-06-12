@@ -42,7 +42,7 @@ class Exists extends AbstractValidator
     public function isValid($value, array $context = null)
     {
         $entry = $this->getEntry($value);
-        $result = ($entry ? (bool) $entry['active']: false);
+        $result = ($entry ? (bool) $entry : false);
         if (!$result) {
             $this->error(self::MSG_NOT_EXISTS);
         }
