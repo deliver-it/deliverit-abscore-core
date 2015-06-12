@@ -72,11 +72,14 @@ class UniqueEntry extends AbstractValidator
 
 
         $data = array();
-        foreach ($fields as $field) {
+        foreach ($fields as $key => $field) {
             if (!array_key_exists($field,$context)) {
                 return false;
             }
-            $data[$field] = $context[$field];
+            if (is_numeric($key)) {
+                $key = $field;
+            }
+            $data[$key] = $context[$field];
         }
 
         $ignoreField = $this->getIgnoreField();
