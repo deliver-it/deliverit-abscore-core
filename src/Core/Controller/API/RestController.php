@@ -5,7 +5,7 @@ namespace ABSCore\Core\Controller\API;
 use Zend\Mvc\Controller\AbstractRestfulController;
 use Zend\View\Model\JsonModel;
 
-use ABSCore\Core\Exception\UnauthorizedException;
+use ABSCore\Core\Exception;;
 
 use ABSCore\DataAccess\Exception\UnknowRegistryException;
 use ABSCore\Core\Service;
@@ -13,48 +13,143 @@ use ABSCore\Core\Service;
 class RestController extends AbstractRestfulController
 {
 
+    /**
+     * Default Limit of entries on getList
+     *
+     * @var float
+     * @access protected
+     */
+    protected $limit = 100;
+
+    /**
+     * Flag to identify if default listing is paginated
+     *
+     * @var mixed
+     * @access protected
+     */
+    protected $isDefaultPaginated = true;
+
+
+    /**
+     * Class constructor
+     *
+     * @param Service\DataServiceInterface $service
+     * @param string $singularName
+     * @param string $pluralName
+     * @access public
+     */
     public function __construct(Service\DataServiceInterface $service, $singularName, $pluralName = null)
     {
         $this->setService($service);
         $this->setNames($singularName, $pluralName);
     }
 
+    /**
+     * Define the default per page
+     *
+     * @param int $limit
+     * @access public
+     * @return RestController
+     */
+    public function setDefaultLimitPerPage($limit)
+    {
+        $limit = (int)$limit;
+        if ($limit <= 0) {
+            throw new Exception\RuntimeException('Invalid limit');
+        }
+        $this->limit = $limit;
+        return $this;
+    }
+
+    /**
+     * Get default limit per page
+     *
+     * @access public
+     * @return int
+     */
+    public function getDefaultLimitPerPage()
+    {
+        return $this->limit;
+    }
+
+    /**
+     * Define data service
+     *
+     * @param Service\DataServiceInterface $service
+     * @access public
+     * @return RestController
+     */
     public function setService(Service\DataServiceInterface $service)
     {
         $this->service = $service;
         return $this;
     }
 
+    /**
+     * Get data service
+     *
+     * @access public
+     * @return Service\DataServiceInterface
+     */
     public function getService()
     {
         return $this->service;
     }
 
+    /**
+     * Set if the default is paginated list
+     *
+     * @param bool $flag
+     * @access public
+     * @return RestController
+     */
+    public function setIsDefaultPaginated($flag)
+    {
+        $this->isDefaultPaginated = (bool)$flag;
+        return $this;
+    }
+
+    /**
+     * Verify if default listing is paginated
+     *
+     * @access public
+     * @return bool
+     */
+    public function isDefaultPaginated()
+    {
+        return $this->isDefaultPaginated;
+    }
+
+    /**
+     * Verify if current request is paginated
+     *
+     * @access public
+     * @return bool
+     */
+    public function isPaginated()
+    {
+        $isDefaultPaginated = $this->isDefaultPaginated();
+        $paginated = ((bool)$this->params()->fromQuery('show_all', !$isDefaultPaginated)) === false;
+        return $paginated;
+    }
+
+
+    /**
+     * Get list of entries
+     *
+     * @access public
+     * @return JsonModel
+     */
     public function getList()
     {
         $logger = $this->getServiceLocator()->get('ABSCore\Core\Log\Logger');
         $logger->info(sprintf('Getting list of %s', $this->getPluralName()));
-        $perPage = (int)$this->params()->fromQuery('size', 100);
-        if ($perPage <= 0) {
-            $perPage = 100;
-        }
 
-        $sort = $this->params()->fromQuery('sort');
-        $order = array();
-        if (!is_null($sort)) {
-            $aux = $this->params()->fromQuery('order');
-            if (!is_null($aux)) {
-                $order[$sort] = $aux;
-            } else {
-                $order[] = $sort;
-            }
-        }
-
-        $paginated = ($this->params()->fromQuery('show_all', false) === false);
-
-        $showInactive = $this->params()->fromQuery('show_inactive', false) !== false;
-
-        $page = (int)$this->params()->fromQuery('page', 1);
+        $paginated = $this->isPaginated();
+        $showInactive = $this->isShowInactive();
+        $perPage = $this->getPerPage();
+        $page = $this->getCurrentPage();
+        $order = $this->getOrder();
 
         $logger->debug(sprintf('Per page %d | page %d | paginated %s | showInactive %s',
             $perPage, $page, var_export($paginated, true), var_export($showInactive, true)));
@@ -75,51 +170,66 @@ class RestController extends AbstractRestfulController
                 $this->normalizeName($this->getPluralName()) => $entries->toArray(),
                 'page' => 1,
                 'pages' => 1,
-                'messages' => array(),
+                'messages' => [],
             ));
         } else {
             return new JsonModel(array(
                 $this->normalizeName($this->getPluralName()) => $entries->getCurrentItems()->toArray(),
                 'page' => $entries->getCurrentPageNumber(),
                 'pages' => $entries->getPages()->pageCount,
-                'messages' => array(),
+                'messages' => [],
             ));
         }
     }
 
+    /**
+     * Get an entry
+     *
+     * @param mixed $id
+     * @access public
+     * @return JsonModel
+     */
     public function get($id) {
         $logger = $this->getServiceLocator()->get('ABSCore\Core\Log\Logger');
         $logger->info(sprintf('Getting %s by id %d', $this->getSingularName(), $id));
 
         $service = $this->getService();
         $showInactive = $this->params()->fromQuery('show_inactive', false) !== false;
-        $messages = array();
+        $messages = [];
         $entry = null;
         try {
-            $entry = $service->find($id, array('showInactive' => $showInactive));
-        } catch (UnauthorizedException $e) {
+            $entry = $service->find($id, ['showInactive' => $showInactive]);
+        } catch (Exception\UnauthorizedException $e) {
             $logger->info(sprintf('Unauthorized %s', $e->getMessage()));
             $name = ucwords($this->getSingularName());
             $this->getResponse()->setStatusCode(403);
-            $messages[] = array('type' => 'error', 'code' => 'ERROR', 'text' => $e->getMessage());
+            $messages[] = ['type' => 'error', 'code' => $e->getCode(), 'text' => $e->getMessage()];
         } catch (UnknowRegistryException $e) {
             $logger->info(sprintf('Unknow Registry %s', $e->getMessage()));
             $name = ucwords($this->getSingularName());
             $this->getResponse()->setStatusCode(404);
-            $messages[] = array('type' => 'error', 'code' => 'ERROR001', 'text' => "$name with identifier '$id' not exists!");
-            $entry = array();
+            $messages[] = ['type' => 'error', 'code' => $e->getCode(), 'text' => "$name with identifier '$id' not exists!"];
+            $entry = [];
         }
-        return new JsonModel(array($this->normalizeName($this->getSingularName()) => $entry, 'messages' => $messages));
+        return new JsonModel([$this->normalizeName($this->getSingularName()) => $entry, 'messages' => $messages]);
 
     }
 
+    /**
+     * Update an entry
+     *
+     * @param mixed $id
+     * @param mixed $data
+     * @access public
+     * @return JsonModel
+     */
     public function update($id, $data)
     {
         $logger = $this->getServiceLocator()->get('ABSCore\Core\Log\Logger');
         $logger->info(sprintf('Updating %s: id %d', $this->getSingularName(), $id));
 
         $service = $this->getService();
-        $result = array('messages' => array());
+        $result = ['messages' => []];
         $messages = &$result['messages'];
         $name = ucwords($this->getSingularName());
         try {
@@ -130,32 +240,39 @@ class RestController extends AbstractRestfulController
             $form->setData((array)$data);
             if ($form->isValid()) {
                 $service->save($id, $form->getData());
-                $messages[] = array('type' => 'success', 'text' => "$name edited successfully");
+                $messages[] = ['type' => 'success', 'text' => "$name edited successfully"];
                 $this->getResponse()->setStatusCode(200);
                 $result['id'] = $id;
             } else {
                 $errors = $form->getInputFilter()->getInvalidInput();
                 foreach ($errors as $key => $error) {
-                    $result['fields'][] = array('name' => $key, 'errors' => array_values($error->getMessages()));
+                    $result['fields'][] = ['name' => $key, 'errors' => array_values($error->getMessages())];
                 }
                 $logger->debug(sprintf('Fields Errors %s', json_encode($result['fields'])));
                 $this->getResponse()->setStatusCode(400);
-                $messages[] = array('type' => 'error', 'text' => 'Some fields are invalid');
+                $messages[] = ['type' => 'error', 'text' => 'Some fields are invalid'];
             }
-        } catch (UnauthorizedException $e) {
+        } catch (Exception\UnauthorizedException $e) {
             $logger->info(sprintf('Unauthorized %s', $e->getMessage()));
             $name = ucwords($this->getSingularName());
             $this->getResponse()->setStatusCode(403);
-            $messages[] = array('type' => 'error', 'code' => 'ERROR', 'text' => $e->getMessage());
+            $messages[] = ['type' => 'error', 'code' => $e->getCode(), 'text' => $e->getMessage()];
         } catch (UnknowRegistryException $e) {
             $logger->info(sprintf('Unknow Registry %s', $e->getMessage()));
             $this->getResponse()->setStatusCode(404);
-            $messages[] = array('type' => 'error', 'code' => 'ERROR001', 'message' => "$name with identifier '$id' not exists!");
-            $entry = array();
+            $messages[] = ['type' => 'error', 'code' => $e->getCode(), 'message' => "$name with identifier '$id' not exists!"];
+            $entry = [];
         }
         return new JsonModel($result);
     }
 
+    /**
+     * create a new entry
+     *
+     * @param mixed $data
+     * @access public
+     * @return JsonModel
+     */
     public function create($data)
     {
         $logger = $this->getServiceLocator()->get('ABSCore\Core\Log\Logger');
@@ -163,7 +280,7 @@ class RestController extends AbstractRestfulController
 
         $service = $this->getService();
 
-        $result = array('messages' => array());
+        $result = ['messages' => []];
         $messages = &$result['messages'];
 
         $form = $service->getForm(Service\DataServiceInterface::FORM_CREATE);
@@ -173,63 +290,90 @@ class RestController extends AbstractRestfulController
             if ($form->isValid()) {
                 $result['id'] = $service->save(null, $form->getData());
                 $name = ucwords($this->getSingularName());
-                $messages[] = array('type' => 'success', 'text' => "$name created successfully");
+                $messages[] = ['type' => 'success', 'text' => "$name created successfully"];
                 $this->getResponse()->setStatusCode(201);
             } else {
                 $this->getResponse()->setStatusCode(400);
 
                 $errors = $form->getInputFilter()->getInvalidInput();
                 foreach ($errors as $key => $error) {
-                    $result['fields'][] = array('name' => $key, 'errors' => array_values($error->getMessages()));
+                    $result['fields'][] = ['name' => $key, 'errors' => array_values($error->getMessages())];
                 }
                 $logger->debug(sprintf('Fields Errors %s', json_encode($result['fields'])));
-                $messages[] = array('type' => 'error', 'text' => 'Some fields are invalid');
+                $messages[] = ['type' => 'error', 'text' => 'Some fields are invalid'];
             }
-        } catch (UnauthorizedException $e) {
+        } catch (Exception\UnauthorizedException $e) {
             $logger->info(sprintf('Unauthorized %s', $e->getMessage()));
             $name = ucwords($this->getSingularName());
             $this->getResponse()->setStatusCode(403);
-            $messages[] = array('type' => 'error', 'code' => 'ERROR', 'text' => $e->getMessage());
+            $messages[] = ['type' => 'error', 'code' => $e->getCode(), 'text' => $e->getMessage()];
         }
         return new JsonModel($result);
     }
 
+    /**
+     * delete an entry
+     *
+     * @param mixed $id
+     * @access public
+     * @return JsonModel
+     */
     public function delete($id)
     {
         $logger = $this->getServiceLocator()->get('ABSCore\Core\Log\Logger');
         $logger->info(sprintf('Removing %s id %d', $this->getSingularName(), $id));
         $service = $this->getService();
-        $messages = array();
+        $messages = [];
         $name = ucwords($this->getSingularName());
         try {
             $entry = $service->find($id);
             $service->delete($id);
-            $messages[] = array('type' => 'success', 'text' => "$name removed successfully!");
-        } catch (UnauthorizedException $e) {
+            $messages[] = ['type' => 'success', 'text' => "$name removed successfully!"];
+        } catch (Exception\UnauthorizedException $e) {
             $logger->info(sprintf('Unauthorized %s', $e->getMessage()));
             $name = ucwords($this->getSingularName());
             $this->getResponse()->setStatusCode(403);
-            $messages[] = array('type' => 'error', 'code' => 'ERROR', 'text' => $e->getMessage());
+            $messages[] = ['type' => 'error', 'code' => $e->getCode(), 'text' => $e->getMessage()];
         } catch (UnknowRegistryException $e) {
             $logger->info(sprintf('Unknow Registry %s', $e->getMessage()));
             $this->getResponse()->setStatusCode(404);
-            $messages[] = array('type' => 'error', 'code' => 'ERROR001', 'text' => "$name with identifier '$id' not exists!");
-            $entry = array();
+            $messages[] = ['type' => 'error', 'code' => $e->getCode(), 'text' => "$name with identifier '$id' not exists!"];
+            $entry = [];
         }
 
-        return new JsonModel(array('messages' => $messages));
+        return new JsonModel(['messages' => $messages]);
     }
 
+    /**
+     * get singular name
+     *
+     * @access public
+     * @return string
+     */
     public function getSingularName()
     {
         return $this->singularName;
     }
 
+    /**
+     * get plural name
+     *
+     * @access public
+     * @return string
+     */
     public function getPluralName()
     {
         return $this->pluralName;
     }
 
+    /**
+     * Set identifier names
+     *
+     * @param string $singularName
+     * @param string | null $pluralName
+     * @access protected
+     * @return RestController
+     */
     protected function setNames($singularName, $pluralName = null)
     {
         $this->singularName = strtolower((string)$singularName);
@@ -237,15 +381,88 @@ class RestController extends AbstractRestfulController
             $pluralName = $singularName.'s';
         }
         $this->pluralName = strtolower($pluralName);
+        return $this;
     }
 
+    /**
+     * Normalize Name
+     *
+     * @param string $name
+     * @access protected
+     * @return string
+     */
     protected function normalizeName($name)
     {
         return preg_replace('/ +/', '-', $name);
     }
 
+    /**
+     * Method to get filter list
+     *
+     * @access protected
+     * @return mixed
+     */
     protected function getFilterList()
     {
         return null;
+    }
+
+    /**
+     * Get order
+     *
+     * @access protected
+     * @return array
+     */
+    protected function getOrder()
+    {
+        $sort = $this->params()->fromQuery('sort');
+        $order = [];
+        if (!is_null($sort)) {
+            $aux = $this->params()->fromQuery('order');
+            if (!is_null($aux)) {
+                $order[$sort] = $aux;
+            } else {
+                $order[] = $sort;
+            }
+        }
+        return $order;
+    }
+
+    /**
+     * Get how many entries per page
+     *
+     * @access protected
+     * @return int
+     */
+    protected function getPerPage()
+    {
+        $defaultLimit = $this->getDefaultLimitPerPage();
+        $perPage = (int)$this->params()->fromQuery('size', $defaultLimit);
+        if ($perPage <= 0) {
+            $perPage = $defaultLimit;
+        }
+        return $perPage;
+    }
+
+    /**
+     * Current request must show inactive entries
+     *
+     * @access protected
+     * @return bool
+     */
+    protected function isShowInactive()
+    {
+        return $this->params()->fromQuery('show_inactive', false) !== false;
+    }
+
+    /**
+     * Get current page number
+     *
+     * @access protected
+     * @return int
+     */
+    protected function getCurrentPage()
+    {
+        return (int)$this->params()->fromQuery('page', 1);
     }
 }
