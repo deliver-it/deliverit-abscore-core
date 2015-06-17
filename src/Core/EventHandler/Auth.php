@@ -6,8 +6,6 @@ use Zend\Mvc\Router;
 
 /**
  * Class to handle authentication events
- *
- * @uses AbstractEventHandler
  */
 class Auth extends AbstractEventHandler
 {
@@ -18,13 +16,23 @@ class Auth extends AbstractEventHandler
      * Authentication Service
      *
      * @var AuthenticationServiceInterface
+     * @access protected
      */
     protected $auth;
+
+    /**
+     * Verification Type
+     *
+     * @var string
+     * @access protected
+     */
+    protected $type;
 
     /**
      * Routes
      *
      * @var array
+     * @access protected
      */
     protected $routes = [];
 
@@ -32,6 +40,7 @@ class Auth extends AbstractEventHandler
      * Routes to redirect
      *
      * @var array
+     * @access protected
      */
     protected $redirectRoutes = [];
 
@@ -39,22 +48,38 @@ class Auth extends AbstractEventHandler
      * Options to redirect
      *
      * @var array
+     * @access protected
      */
     protected $redirectOptions = [];
 
     /**
-     * redirectParams
+     * Params to create redirect URL
      *
-     * @var mixed
+     * @var array
+     * @access protected
      */
     protected $redirectParams = [];
 
-    public function __construct(AuthenticationServiceInterface $auth, $type = '')
+    /**
+     * Class constructor
+     *
+     * @param AuthenticationServiceInterface $auth Authentication service
+     * @param string $type Type of verification
+     * @access public
+     */
+    public function __construct(AuthenticationServiceInterface $auth, $type = null)
     {
         $this->setAuth($auth)
              ->setType($type);
     }
 
+    /**
+     * Set type of verification
+     *
+     * @param string $type DENY_TYPE | ALLOW_TYPE
+     * @access public
+     * @return $this
+     */
     public function setType($type)
     {
         switch($type){
@@ -69,11 +94,25 @@ class Auth extends AbstractEventHandler
         return $this;
     }
 
+    /**
+     * Get type of verification
+     *
+     * @access public
+     * @return string
+     */
     public function getType()
     {
         return $this->type;
     }
 
+    /**
+     * Match a config route with the current route
+     *
+     * @param array $needle                 Route config
+     * @param Router\RouteMatch $haystack   Current route
+     * @access protected
+     * @return boolean
+     */
     protected function matchRoute(array $needle, Router\RouteMatch $haystack)
     {
         foreach($needle as $key => $value) {
@@ -93,6 +132,13 @@ class Auth extends AbstractEventHandler
         return true;
     }
 
+    /**
+     * Format route configuration
+     *
+     * @param mixed $route route configuration
+     * @access protected
+     * @return $this
+     */
     protected function formatRoute($route)
     {
         if (is_string($route)) {
@@ -102,11 +148,24 @@ class Auth extends AbstractEventHandler
         return $route;
     }
 
+    /**
+     * Get routes configuration
+     *
+     * @access public
+     * @return array
+     */
     public function getRoutes()
     {
         return $this->routes;
     }
 
+    /**
+     * Set configuration routes
+     *
+     * @param array $routes
+     * @access public
+     * @return $this
+     */
     public function setRoutes(array $routes)
     {
         $this->routes = [];
@@ -117,23 +176,44 @@ class Auth extends AbstractEventHandler
         return $this;
     }
 
-    public function setAuth($auth)
+    /**
+     * Set autehtication service
+     *
+     * @param AuthenticationServiceInterface $auth
+     * @access public
+     * @return $this
+     */
+    public function setAuth(AuthenticationServiceInterface $auth)
     {
         $this->auth = $auth;
         return $this;
     }
 
+    /**
+     * Get authentication service
+     *
+     * @access public
+     * @return AuthenticationServiceInterface
+     */
     public function getAuth()
     {
         return $this->auth;
     }
 
-    protected function isAllowedRoute($routeMatch, $haystack)
+    /**
+     * isAllowedRoute
+     *
+     * @param Router\RouteMatch $needle
+     * @param array $haystack
+     * @access protected
+     * @return boolean
+     */
+    protected function isAllowedRoute(Router\RouteMatch $needle, array $haystack)
     {
         $exists = false;
         $isAllowed = true;
         foreach($haystack as $route) {
-            $match = $this->matchRoute($route, $routeMatch);
+            $match = $this->matchRoute($needle, $routeMatch);
             if ($this->getType() == self::DENY_TYPE) {
                 if ($match) {
                     $isAllowed = false;
@@ -152,17 +232,38 @@ class Auth extends AbstractEventHandler
         return $isAllowed;
     }
 
+    /**
+     * Get redirect routes
+     *
+     * @access public
+     * @return array
+     */
     public function getRedirectRoutes()
     {
         return $this->redirectRoutes;
     }
 
+    /**
+     * Set redirect routes
+     *
+     * @param array $redirectRoutes
+     * @access public
+     * @return $this
+     */
     public function setRedirectRoutes($redirectRoutes)
     {
         $this->redirectRoutes = $redirectRoutes;
         return $this;
     }
 
+    /**
+     * Set redirect route params
+     *
+     * @param array $params
+     * @param array $options
+     * @access public
+     * @return $this
+     */
     public function setRedirectRouteParams(array $params, array $options)
     {
         $this->redirectParams = $params;
@@ -170,22 +271,48 @@ class Auth extends AbstractEventHandler
         return $this;
     }
 
+    /**
+     * Set Redirect Url
+     *
+     * @param string $url
+     * @access public
+     * @return $this
+     */
     public function setRedirectUrl($url)
     {
         $this->redirectUrl = $url;
         return $this;
     }
 
+    /**
+     * Get Redirect Params
+     *
+     * @access public
+     * @return array
+     */
     public function getRedirectParams()
     {
         return $this->redirectParams;
     }
 
+    /**
+     * Get Redirect Options
+     *
+     * @access public
+     * @return array
+     */
     public function getRedirectOptions()
     {
         return $this->redirectOptions;
     }
 
+    /**
+     * Get Redirect Url
+     *
+     * @param mixed $router
+     * @access public
+     * @return string
+     */
     public function getRedirectUrl($router)
     {
         if (empty($this->redirectUrl)) {
@@ -195,6 +322,14 @@ class Auth extends AbstractEventHandler
         return $this->redirectUrl;
     }
 
+    /**
+     * Set params into response to make a redirect
+     *
+     * @param mixed $response
+     * @param mixed $event
+     * @access protected
+     * @return $this
+     */
     protected function setReponseRedirect($response, $event)
     {
         $router = $event->getRouter();
@@ -203,12 +338,26 @@ class Auth extends AbstractEventHandler
         return $this;
     }
 
+    /**
+     * Configure reponse to respond as unaauthorized
+     *
+     * @param mixed $response
+     * @access protected
+     * @return $this
+     */
     protected function setResponseUnauthorized($response)
     {
         $response->setStatusCode(401);
         return $this;
     }
 
+    /**
+     * Implementation of abstract method, it is called when event happens
+     *
+     * @param mixed $event
+     * @access public
+     * @return mixed
+     */
     public function invoke($event)
     {
         $auth = $this->getAuth();
