@@ -213,7 +213,7 @@ class Auth extends AbstractEventHandler
         $exists = false;
         $isAllowed = true;
         foreach($haystack as $route) {
-            $match = $this->matchRoute($haystack, $needle);
+            $match = $this->matchRoute($route, $needle);
             if ($this->getType() == self::DENY_TYPE) {
                 if ($match) {
                     $isAllowed = false;
