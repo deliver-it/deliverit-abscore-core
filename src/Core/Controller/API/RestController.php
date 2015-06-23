@@ -174,7 +174,7 @@ class RestController extends AbstractRestfulController
             ));
         } else {
             return new JsonModel(array(
-                $this->normalizeName($this->getPluralName()) => $entries->getCurrentItems()->toArray(),
+                $this->normalizeName($this->getPluralName()) => $entries->getCurrentItems(),
                 'page' => $entries->getCurrentPageNumber(),
                 'pages' => $entries->getPages()->pageCount,
                 'messages' => [],
