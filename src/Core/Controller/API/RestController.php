@@ -173,8 +173,12 @@ class RestController extends AbstractRestfulController
                 'messages' => [],
             ));
         } else {
+            $currentItems = $entries->getCurrentItems();
+            if (method_exists($currentItems, 'getArrayCopy')) {
+                $currentItems = $currentItems->getArrayCopy();
+            }
             return new JsonModel(array(
-                $this->normalizeName($this->getPluralName()) => $entries->getCurrentItems(),
+                $this->normalizeName($this->getPluralName()) => $currentItems,
                 'page' => $entries->getCurrentPageNumber(),
                 'pages' => $entries->getPages()->pageCount,
                 'messages' => [],
