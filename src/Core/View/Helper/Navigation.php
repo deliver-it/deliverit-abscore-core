@@ -3,7 +3,7 @@
 namespace ABSCore\Core\View\Helper;
 
 use Zend\View\Helper\Navigation as ZendNavigation;
-
+use ABSCore\Core\Service;
 /**
  * Navigation Helper with acl included
  *
@@ -18,7 +18,7 @@ class Navigation extends ZendNavigation
      * @param mixed $permissions
      * @access public
      */
-    public function __construct(ABSCore\Core\Service\PermissionsInterface $permissions)
+    public function __construct(Service\PermissionsInterface $permissions)
     {
         $this->setPermissions($permissions)->setUseAcl(true);
     }
@@ -30,7 +30,7 @@ class Navigation extends ZendNavigation
      * @access public
      * @return Navigation
      */
-    public function setPermissions(ABSCore\Core\Service\PermissionsInterface $permissions)
+    public function setPermissions(Service\PermissionsInterface $permissions)
     {
         $this->permissions = $permissions;
         return $this;
