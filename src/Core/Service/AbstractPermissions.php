@@ -1,13 +1,13 @@
-<?php
-
+<?php 
 namespace ABSCore\Core\Service;
 
 use Zend\Permissions\Acl\Acl;
 use Zend\Permissions\Acl\Role\GenericRole as Role;
 use Zend\Permissions\Acl\Resource\GenericResource as Resource;
 
-use ABSCore\Model;
-use ABSCore\Exception;
+use ABSCore\Core\Model;
+use ABSCore\Core\Exception;
+
 
 /**
  * Model to manage system permissions
@@ -15,13 +15,7 @@ use ABSCore\Exception;
 abstract class AbstractPermissions implements PermissionsInterface
 {
 
-    /**
-     * Service Locator
-     *
-     * @var mixed
-     * @access protected
-     */
-    protected $service;
+    use \Zend\ServiceManager\ServiceLocatorAwareTrait;
 
     /**
      * Access control list
@@ -48,7 +42,7 @@ abstract class AbstractPermissions implements PermissionsInterface
      */
     public function __construct($service, Model\IdentityInterface $identity)
     {
-        $this->setService($service)
+        $this->setServiceLocator($service)
             ->setIdentity($identity)
             ->init();
     }
@@ -87,17 +81,6 @@ abstract class AbstractPermissions implements PermissionsInterface
     {
         $this->service = $service;
         return $this;
-    }
-
-    /**
-     * Get acl object
-     *
-     * @access public
-     * @return \Zend\Permission\Acl\Acl
-     */
-    public function getAcl()
-    {
-        return $this->acl;
     }
 
     /**
