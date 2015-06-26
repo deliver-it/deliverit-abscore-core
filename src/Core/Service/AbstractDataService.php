@@ -245,7 +245,7 @@ abstract class AbstractDataService implements DataServiceInterface
             $data[$key] = $id;
         }
         $permissions = $this->getPermissions();
-        if (!is_null($permissions) && !$permissions->isAllowed($this->getIdentifier(), $permission)) {
+        if (!is_null($permissions) && !$permissions->isAllowed($this->getIdentifier(), $permission, $data)) {
             throw new Exception\UnauthorizedException('You cannot '. $permission . ' '. $this->getIdentifier());
         }
 
