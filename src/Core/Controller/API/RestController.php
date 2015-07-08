@@ -250,7 +250,7 @@ class RestController extends AbstractRestfulController
             } else {
                 $errors = $form->getInputFilter()->getInvalidInput();
                 foreach ($errors as $key => $error) {
-                    $result['fields'][] = ['name' => $key, 'errors' => array_values($error->getMessages())];
+                    $result['fields'][] = ['name' => $key, 'errors' => $error->getMessages()];
                 }
                 $logger->debug(sprintf('Fields Errors %s', json_encode($result['fields'])));
                 $this->getResponse()->setStatusCode(400);
@@ -301,7 +301,7 @@ class RestController extends AbstractRestfulController
 
                 $errors = $form->getInputFilter()->getInvalidInput();
                 foreach ($errors as $key => $error) {
-                    $result['fields'][] = ['name' => $key, 'errors' => array_values($error->getMessages())];
+                    $result['fields'][] = ['name' => $key, 'errors' => $error->getMessages()];
                 }
                 $logger->debug(sprintf('Fields Errors %s', json_encode($result['fields'])));
                 $messages[] = ['type' => 'error', 'text' => 'Some fields are invalid'];
