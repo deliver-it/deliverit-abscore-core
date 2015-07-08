@@ -3,7 +3,8 @@
 namespace ABSCore\Core\Service;
 
 use Zend\ServiceManager\ServiceLocatorInterface;
-use ABSCore\DataAccess\DataAccessInterface;
+use Zend\Paginator\Paginator;
+use ABSCore\DataAccess;
 use ABSCore\Core\Exception;
 
 /**
@@ -32,7 +33,7 @@ abstract class AbstractDataService implements DataServiceInterface
     /**
      * Data access object
      *
-     * @var DataAccessInterface
+     * @var DataAccess\DataAccessInterface
      * @access protected
      */
     protected $dataAccess;
@@ -62,11 +63,11 @@ abstract class AbstractDataService implements DataServiceInterface
     /**
      * Class constructor
      *
-     * @param DataAccessInterface $dataAccess
+     * @param DataAccess\DataAccessInterface $dataAccess
      * @param ServiceLocatorInterface $serviceLocator
      * @param string $identifier
      */
-    public function __construct(DataAccessInterface $dataAccess, ServiceLocatorInterface $serviceLocator,
+    public function __construct(DataAccess\DataAccessInterface $dataAccess, ServiceLocatorInterface $serviceLocator,
                                $identifier)
     {
         $this->setDataAccess($dataAccess)
@@ -96,10 +97,10 @@ abstract class AbstractDataService implements DataServiceInterface
      * Set data access object
      *
      * @access public
-     * @param DataAccessInterface $dataAccess
+     * @param DataAccess\DataAccessInterface $dataAccess
      * @return AbstractDataService
      */
-    public function setDataAccess(DataAccessInterface $dataAccess) {
+    public function setDataAccess(DataAccess\DataAccessInterface $dataAccess) {
         $this->dataAccess = $dataAccess;
         return $this;
     }
@@ -132,7 +133,7 @@ abstract class AbstractDataService implements DataServiceInterface
      * Get data access object
      *
      * @access public
-     * @return DataAccessInterface
+     * @return DataAccess\DataAccessInterface
      */
     public function getDataAccess()
     {
@@ -174,9 +175,47 @@ abstract class AbstractDataService implements DataServiceInterface
             $where['active'] = 1;
             $params['active'] = 1;
         }
-        $data = $this->getDataAccess()->fetchAll($where, $params);
+        $dbQuery = $this->getFetchAllDBQuery($where, $params);
+        if (!is_null($dbQuery)) {
+            $data = $this->fetchWithDBQuery($dbQuery, $params);
+        } else {
+            $data = $this->getDataAccess()->fetchAll($where, $params);
+        }
 
         return $data;
+    }
+
+    protected function fetchWithDBQuery($dbQuery, $params)
+    {
+        if (!is_object($dbQuery) || !$dbQuery instanceof DataAccess\DBQuery) {
+            throw new Exception\RuntimeException('fetchAll query must be a DBQuery instance');
+        }
+        if (isset($params['paginated']) && $params['paginated']) {
+            $adapter = DataAccess\Paginator\Adapter\DBQuery($dbQuery);
+            $paginator = Paginator($adapter);
+            if (isset($params['page'])) {
+                $paginator->setCurrentPageNumber($params['page']);
+            }
+
+            if (isset($params['perPage'])) {
+                $paginator->setPerPage($params['perPage']);
+            }
+
+            $result = $paginator;
+        } else {
+            $result = $dbQuery->fetch();
+        }
+        return $result;
+    }
+
+    protected function getFetchAllDBQuery($where, $params)
+    {
+        return null;
+    }
+
+    protected function getFindDBQuery($id)
+    {
+        return null;
     }
 
     public function isSoftDelete()
@@ -214,7 +253,13 @@ abstract class AbstractDataService implements DataServiceInterface
         if (!is_null($permissions) && !$permissions->isAllowed($this->getIdentifier(), 'retrieve')) {
             throw new Exception\UnauthorizedException('You cannot retrieve '. $this->getIdentifier());
         }
-        $data = $this->getDataAccess()->find($id);
+        $dbQuery = $this->getFindDBQuery($id);
+        if (!is_null($dbQuery)) {
+            $data = $dbQuery->fetch()->current();
+        } else {
+           $data = $this->getDataAccess()->find($id);
+        }
+
 
         return $data;
     }
