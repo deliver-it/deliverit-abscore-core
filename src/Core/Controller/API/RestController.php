@@ -154,36 +154,44 @@ class RestController extends AbstractRestfulController
         $logger->debug(sprintf('Per page %d | page %d | paginated %s | showInactive %s',
             $perPage, $page, var_export($paginated, true), var_export($showInactive, true)));
 
-        $entries = $this->getService()->fetchAll(
-            $this->getFilterList(),
-            array(
-                'page' => $page,
-                'paginated' => $paginated,
-                'perPage' => $perPage,
-                'showInactive' => $showInactive,
-                'order' => $order,
-            )
-        );
-
-        if (!$paginated) {
-            return new JsonModel(array(
-                $this->normalizeName($this->getPluralName()) => $entries->toArray(),
-                'page' => 1,
-                'pages' => 1,
-                'messages' => [],
-            ));
-        } else {
-            $currentItems = $entries->getCurrentItems();
-            if (method_exists($currentItems, 'getArrayCopy')) {
-                $currentItems = $currentItems->getArrayCopy();
+        $normalizedName = $this->normalizeName($this->getPluralName());
+        $currentPageNumber = 1;
+        $pageCount = 1;
+        try {
+            $entries = $this->getService()->fetchAll(
+                $this->getFilterList(),
+                array(
+                    'page' => $page,
+                    'paginated' => $paginated,
+                    'perPage' => $perPage,
+                    'showInactive' => $showInactive,
+                    'order' => $order,
+                )
+            );
+            $messages = [];
+            if (!$paginated) {
+                $currentItems = $entries->toArray();
+            } else {
+                $currentItems = $entries->getCurrentItems();
+                if (method_exists($currentItems, 'getArrayCopy')) {
+                    $currentItems = $currentItems->getArrayCopy();
+                }
+                $currentPageNumber = $entries->getCurrentPageNumber();
+                $pageCount = $entries->getPages()->pageCount;
             }
-            return new JsonModel(array(
-                $this->normalizeName($this->getPluralName()) => $currentItems,
-                'page' => $entries->getCurrentPageNumber(),
-                'pages' => $entries->getPages()->pageCount,
-                'messages' => [],
-            ));
+        } catch (Exception\UnauthorizedException $e) {
+            $logger->info(sprintf('Unauthorized %s', $e->getMessage()));
+            $this->getResponse()->setStatusCode(403);
+            $messages[] = ['type' => 'error', 'code' => $e->getCode(), 'text' => $e->getMessage()];
+            $currentItems = [];
         }
+
+        return new JsonModel(array(
+            $normalizedName => $currentItems,
+            'page' => $currentPageNumber,
+            'pages' => $pageCount,
+            'messages' => $messages,
+        ));
     }
 
     /**
