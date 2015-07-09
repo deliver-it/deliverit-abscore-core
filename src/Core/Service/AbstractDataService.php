@@ -191,14 +191,14 @@ abstract class AbstractDataService implements DataServiceInterface
             throw new Exception\RuntimeException('fetchAll query must be a DBQuery instance');
         }
         if (isset($params['paginated']) && $params['paginated']) {
-            $adapter = DataAccess\Paginator\Adapter\DBQuery($dbQuery);
-            $paginator = Paginator($adapter);
+            $adapter = new DataAccess\Paginator\Adapter\DBQuery($dbQuery);
+            $paginator = new Paginator($adapter);
             if (isset($params['page'])) {
                 $paginator->setCurrentPageNumber($params['page']);
             }
 
             if (isset($params['perPage'])) {
-                $paginator->setPerPage($params['perPage']);
+                $paginator->setItemCountPerPage($params['perPage']);
             }
 
             $result = $paginator;
