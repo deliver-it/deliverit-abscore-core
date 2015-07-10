@@ -256,10 +256,12 @@ abstract class AbstractDataService implements DataServiceInterface
         $dbQuery = $this->getFindDBQuery($id);
         if (!is_null($dbQuery)) {
             $data = $dbQuery->fetch()->current();
+            if (is_null($data)) {
+                throw new DataAccess\Exception\UnknowRegistryException('Registry not found.');
+            }
         } else {
-           $data = $this->getDataAccess()->find($id);
+            $data = $this->getDataAccess()->find($id);
         }
-
 
         return $data;
     }
