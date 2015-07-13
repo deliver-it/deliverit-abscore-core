@@ -61,6 +61,13 @@ abstract class AbstractDataService implements DataServiceInterface
     protected $identifier;
 
     /**
+     * Field name to check if registry is active (soft delete)
+     *
+     * @var string
+     */
+    protected $activeField = 'active';
+
+    /**
      * Class constructor
      *
      * @param DataAccess\DataAccessInterface $dataAccess
@@ -103,6 +110,27 @@ abstract class AbstractDataService implements DataServiceInterface
     public function setDataAccess(DataAccess\DataAccessInterface $dataAccess) {
         $this->dataAccess = $dataAccess;
         return $this;
+    }
+
+    /**
+     * setActiveField
+     *
+     * @param string $activeField
+     * @return void
+     */
+    public function setActiveField($activeField)
+    {
+        $this->activeField = $activeField;
+    }
+
+    /**
+     * getActiveField
+     *
+     * @return string
+     */
+    public function getActiveField()
+    {
+        return $this->activeField;
     }
 
     /**
@@ -162,6 +190,7 @@ abstract class AbstractDataService implements DataServiceInterface
     public function fetchAll($where = null, $params = array())
     {
         $permissions = $this->getPermissions();
+        $activeField = $this->getActiveField();
         if (!is_null($permissions) && !$permissions->isAllowed($this->getIdentifier(), 'retrieve_list')) {
             throw new Exception\UnauthorizedException('You cannot retrieve list of '. $this->getIdentifier());
         }
@@ -169,11 +198,11 @@ abstract class AbstractDataService implements DataServiceInterface
             $where = array();
         }
         if (
-            is_array($where) && !array_key_exists('active', $where) &&
+            is_array($where) && !array_key_exists($activeField, $where) &&
             (!array_key_exists('showInactive', $params) || !$params['showInactive']) && $this->isSearchByActive()
         ) {
-            $where['active'] = 1;
-            $params['active'] = 1;
+            $where[$activeField] = 1;
+            $params[$activeField] = 1;
         }
         $dbQuery = $this->getFetchAllDBQuery($where, $params);
         if (!is_null($dbQuery)) {
@@ -317,13 +346,14 @@ abstract class AbstractDataService implements DataServiceInterface
     public function delete($id)
     {
         $permissions = $this->getPermissions();
+        $activeField = $this->getActiveField();
         if (!is_null($permissions) && !$permissions->isAllowed($this->getIdentifier(), 'delete')) {
             throw new Exception\UnauthorizedException('You cannot delete '. $this->getIdentifier());
         }
         $dataAccess = $this->getDataAccess();
         $data = (array)$dataAccess->find($id);
         if ($this->isSoftDelete()) {
-            $data['active'] = 0;
+            $data[$activeField] = 0;
             return $dataAccess->save($data);
         } else {
             return $dataAccess->delete(['id' => $id]);
