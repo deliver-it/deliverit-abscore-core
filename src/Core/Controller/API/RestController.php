@@ -4,6 +4,8 @@ namespace ABSCore\Core\Controller\API;
 
 use Zend\Mvc\Controller\AbstractRestfulController;
 use Zend\View\Model\JsonModel;
+use Zend\Mvc\MvcEvent;
+
 
 use ABSCore\Core\Exception;;
 
@@ -42,6 +44,77 @@ class RestController extends AbstractRestfulController
     {
         $this->setService($service);
         $this->setNames($singularName, $pluralName);
+    }
+
+    /**
+     * Dispatch request for custom methods if exist
+     *
+     * @param MvcEvent $e
+     * @return mixed
+     */
+    public function onDispatch(MvcEvent $e)
+    {
+        $request = $e->getRequest();
+        $route = $e->getRouteMatch();
+        $result = null;
+        if ($route) {
+            $action = $route->getParam('action');
+            $id = $this->getIdentifier($route, $request);
+            $childId = $route->getParam('child_id');
+            switch($request->getMethod()) {
+                case 'GET':
+                    $params = [$id];
+                    $method = 'get' . $action;
+                    if (!$childId) {
+                        $method .= 'List';
+                    } else {
+                        $params[] = $childId;
+                    }
+                    if (method_exists($this, $method)) {
+                        $result = call_user_func_array([$this, $method], $params);
+                    }
+                    break;
+                case 'POST':
+                    $method = 'create' . $action;
+                    if (method_exists($this, $method)) {
+                        if ($this->requestHasContentType($request, self::CONTENT_TYPE_JSON)) {
+                            $data = Json::decode($request->getContent(), $this->jsonDecodeType);
+                        } else {
+                            $data = $request->getPost()->toArray();
+                        }
+                        $result = $this->$method($id, $data);
+                    }
+                    break;
+                case 'PUT':
+                    if ($childId) {
+                        $method = 'update' . $action;
+                        if (method_exists($this, $method)) {
+                            $data = $this->processBodyContent($request);
+                            $result = $this->$method($id, $childId, $data);
+                        }
+                    }
+                    break;
+                case 'DELETE':
+                    $method = 'delete' . $action;
+                    $params = [$id];
+                    if (!$childId) {
+                        $method .= 'List';
+                    } else {
+                        $params[] = $childId;
+                    }
+                    if (method_exists($this, $method)) {
+                        $result = call_user_func_array([$this, $method], $params);
+                    }
+                    break;
+            }
+        }
+
+        if (is_null($result)) {
+            return parent::onDispatch($e);
+        }
+
+        $e->setResult($result);
+        return $result;
     }
 
     /**
