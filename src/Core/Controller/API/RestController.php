@@ -56,6 +56,7 @@ class RestController extends AbstractRestfulController
     {
         $request = $e->getRequest();
         $route = $e->getRouteMatch();
+        $result = null;
         if ($route) {
             $action = $route->getParam('action');
             $id = $this->getIdentifier($route, $request);
@@ -70,7 +71,7 @@ class RestController extends AbstractRestfulController
                         $params[] = $childId;
                     }
                     if (method_exists($this, $method)) {
-                        return call_user_func_array([$this, $method], $params);
+                        $result = call_user_func_array([$this, $method], $params);
                     }
                     break;
                 case 'POST':
@@ -81,7 +82,7 @@ class RestController extends AbstractRestfulController
                         } else {
                             $data = $request->getPost()->toArray();
                         }
-                        return $this->$method($id, $data);
+                        $result = $this->$method($id, $data);
                     }
                     break;
                 case 'PUT':
@@ -89,7 +90,7 @@ class RestController extends AbstractRestfulController
                         $method = 'update' . $action;
                         if (method_exists($this, $method)) {
                             $data = $this->processBodyContent($request);
-                            return $this->$method($id, $childId, $data);
+                            $result = $this->$method($id, $childId, $data);
                         }
                     }
                     break;
@@ -102,12 +103,18 @@ class RestController extends AbstractRestfulController
                         $params[] = $childId;
                     }
                     if (method_exists($this, $method)) {
-                        return call_user_func_array([$this, $method], $params);
+                        $result = call_user_func_array([$this, $method], $params);
                     }
                     break;
             }
         }
-        return parent::onDispatch($e);
+
+        if (is_null($result)) {
+            return parent::onDispatch($e);
+        }
+
+        $e->setResult($result);
+        return $result;
     }
 
     /**
