@@ -1,6 +1,6 @@
 {
     "name": "ABSCore/Core",
-    "version": "0.6.2",
+    "version": "0.7.0",
     "repositories": [
         {
             "type": "composer",
@@ -9,7 +9,8 @@
     ],
     "require": {
         "php" : ">=5.4.0",
-        "zendframework/zendframework": "2.4.*"
+        "zendframework/zendframework": "2.4.*",
+        "phpoffice/phpexcel": "1.8.1"
     },
     "require-dev": {
         "phpdocumentor/phpdocumentor": "2.*",
