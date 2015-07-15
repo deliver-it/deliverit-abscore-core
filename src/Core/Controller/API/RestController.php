@@ -56,63 +56,75 @@ class RestController extends AbstractRestfulController
     {
         $request = $e->getRequest();
         $route = $e->getRouteMatch();
+        $logger = $this->getServiceLocator()->get('ABSCore\Core\Log\Logger');
         $result = null;
-        if ($route) {
-            $action = $route->getParam('action');
-            if ($action) {
-                $id = $this->getIdentifier($route, $request);
-                $childId = $route->getParam('child_id');
-                switch($request->getMethod()) {
-                    case 'GET':
-                        $params = [$id];
-                        $method = 'get' . $action;
-                        if (!$childId) {
-                            $method .= 'List';
-                        } else {
-                            $params[] = $childId;
-                        }
-                        if (method_exists($this, $method)) {
-                            $result = call_user_func_array([$this, $method], $params);
-                        }
-                        break;
-                    case 'POST':
-                        $method = 'create' . $action;
-                        if (method_exists($this, $method)) {
-                            if ($this->requestHasContentType($request, self::CONTENT_TYPE_JSON)) {
-                                $data = Json::decode($request->getContent(), $this->jsonDecodeType);
+        $id = $this->getIdentifier($route, $request);
+        try {
+            if ($route) {
+                $action = $route->getParam('action');
+                if ($action) {
+                    $childId = $route->getParam('child_id');
+                    switch($request->getMethod()) {
+                        case 'GET':
+                            $params = [$id];
+                            $method = 'get' . $action;
+                            if (!$childId) {
+                                $method .= 'List';
                             } else {
-                                $data = $request->getPost()->toArray();
+                                $params[] = $childId;
                             }
-                            $result = $this->$method($id, $data);
-                        }
-                        break;
-                    case 'PUT':
-                        if ($childId) {
-                            $method = 'update' . $action;
                             if (method_exists($this, $method)) {
-                                $data = $this->processBodyContent($request);
-                                $result = $this->$method($id, $childId, $data);
+                                $result = call_user_func_array([$this, $method], $params);
                             }
-                        }
-                        break;
-                    case 'DELETE':
-                        $method = 'delete' . $action;
-                        $params = [$id];
-                        if (!$childId) {
-                            $method .= 'List';
-                        } else {
-                            $params[] = $childId;
-                        }
-                        if (method_exists($this, $method)) {
-                            $result = call_user_func_array([$this, $method], $params);
-                        }
-                        break;
+                            break;
+                        case 'POST':
+                            $method = 'create' . $action;
+                            if (method_exists($this, $method)) {
+                                if ($this->requestHasContentType($request, self::CONTENT_TYPE_JSON)) {
+                                    $data = Json::decode($request->getContent(), $this->jsonDecodeType);
+                                } else {
+                                    $data = $request->getPost()->toArray();
+                                }
+                                $result = $this->$method($id, $data);
+                            }
+                            break;
+                        case 'PUT':
+                            if ($childId) {
+                                $method = 'update' . $action;
+                                if (method_exists($this, $method)) {
+                                    $data = $this->processBodyContent($request);
+                                    $result = $this->$method($id, $childId, $data);
+                                }
+                            }
+                            break;
+                        case 'DELETE':
+                            $method = 'delete' . $action;
+                            $params = [$id];
+                            if (!$childId) {
+                                $method .= 'List';
+                            } else {
+                                $params[] = $childId;
+                            }
+                            if (method_exists($this, $method)) {
+                                $result = call_user_func_array([$this, $method], $params);
+                            }
+                            break;
+                    }
                 }
             }
-        }
-
-        if (is_null($result)) {
-            return parent::onDispatch($e);
+            if (is_null($result)) {
+                return parent::onDispatch($e);
+            }
+        } catch (UnknowRegistryException $exception) {
+            $logger->info(sprintf('Unknow Registry %s', $exception->getMessage()));
+            $this->getResponse()->setStatusCode(404);
+            $messages[] = ['type' => 'error', 'code' => $exception->getCode(), 'text' => "Unknow registry"];
+            $result = new JsonModel(['messages' => $messages]);
+        } catch (Exception\UnauthorizedException $exception) {
+            $logger->info(sprintf('Unauthorized %s', $exception->getMessage()));
+            $this->getResponse()->setStatusCode(403);
+            $messages[] = ['type' => 'error', 'code' => $exception->getCode(), 'text' => $exception->getMessage()];
+            $result = new JsonModel(['messages' => $messages]);
         }
 
         $e->setResult($result);
