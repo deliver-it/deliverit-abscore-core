@@ -356,7 +356,8 @@ abstract class AbstractDataService implements DataServiceInterface
             $data[$activeField] = 0;
             return $dataAccess->save($data);
         } else {
-            return $dataAccess->delete(['id' => $id]);
+            $key = current($this->getDataAccess()->getPrimaryKey());
+            return $dataAccess->delete([$key => $id]);
         }
     }
 
