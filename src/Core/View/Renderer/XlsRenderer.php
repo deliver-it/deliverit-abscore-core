@@ -5,7 +5,7 @@ namespace ABSCore\Core\View\Renderer;
 use Zend\View\Renderer\RendererInterface;
 use Zend\View\Resolver\ResolverInterface;
 
-use Application\View\Model\XlsModel;
+use ABSCore\Core\View\Model\XlsModel;
 
 use PHPExcel_IOFactory;
 
