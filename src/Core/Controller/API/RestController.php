@@ -6,8 +6,9 @@ use Zend\Mvc\Controller\AbstractRestfulController;
 use Zend\View\Model\JsonModel;
 use Zend\Mvc\MvcEvent;
 
+use Zend\Json\Json;
 
-use ABSCore\Core\Exception;;
+use ABSCore\Core\Exception;
 
 use ABSCore\DataAccess\Exception\UnknowRegistryException;
 use ABSCore\Core\Service;
