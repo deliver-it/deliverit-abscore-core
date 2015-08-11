@@ -48,6 +48,8 @@ class XlsRenderer implements RendererInterface
         }
         $document = $nameOrModel->getXlsDocument();
         $writer = PHPExcel_IOFactory::createWriter($document, 'Excel2007');
+        $writer->setPreCalculateFormulas(true);
+
         ob_start();
         $writer->save('php://output');
         $result = ob_get_clean();
