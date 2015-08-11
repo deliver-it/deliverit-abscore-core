@@ -110,6 +110,13 @@ class RestController extends AbstractRestfulController
                                 $result = call_user_func_array([$this, $method], $params);
                             }
                             break;
+                        case 'OPTIONS':
+                            $method = 'options'.$action;
+                            $params = [];
+                            if (method_exists($this, $method)) {
+                                $result = call_user_func_array([$this, $method], $params);
+                            }
+
                     }
                 }
             }
