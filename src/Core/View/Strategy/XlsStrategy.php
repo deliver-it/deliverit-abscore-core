@@ -108,13 +108,17 @@ class XlsStrategy implements ListenerAggregateInterface
         $response = $e->getResponse();
         $result = $e->getResult();
 
+
         if ($this->renderer !== $renderer) {
             return;
         }
         $headers = $response->getHeaders();
+
+        $filename = $e->getModel()->getFilename();
+
         $headers->addHeaders([
             'Content-Type' => 'application/octet-stream',
-            'Content-Disposition' =>'attachment; filename=download.xls', //@todo remover o nome cravado
+            'Content-Disposition' =>'attachment; filename='.$filename,
             'Content-Transfer-Encoding' => 'binary',
         ]);
 
