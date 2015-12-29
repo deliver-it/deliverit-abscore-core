@@ -15,6 +15,8 @@ use PHPExcel;
 class XlsModel extends ViewModel
 {
 
+    protected $filename;
+
     /**
      * Terminate is true to prevent layou rendering
      *
@@ -278,5 +280,17 @@ class XlsModel extends ViewModel
         $sheet->getStyle($position)->applyFromArray($style);
 
         return $this;
+    }
+
+    public function setFilename($filename)
+    {
+        $this->filename = $filename;
+
+        return $this;
+    }
+
+    public function getFilename()
+    {
+        return $this->filename ?: "download.xls";
     }
 }
