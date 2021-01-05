@@ -210,6 +210,17 @@ class XlsModel extends ViewModel
     }
 
     /**
+     * Check the content before coloring cell.
+     *
+     * @param $value paramter using for check if coloring cell or not.
+     * @return bool
+     */
+    public function isSetColorCel($value)
+    {
+        return isset($value) && !empty($value);
+    }
+
+    /**
      * Set Body content
      *
      * @param array $data A multidimension array with data
@@ -225,7 +236,22 @@ class XlsModel extends ViewModel
         $y = (int)$y;
 
         $styleArray = $this->getBodyStyle();
-        foreach ($data as $values) {
+        foreach ($data as &$values) {
+            $styleArray = $this->getBodyStyle();
+
+            if ($this->isSetColorCel($values['showallschedules'])) {
+                $styleArrayAllSchedules = array(
+                    'font'  => array(
+                        'color' => array('rgb' => 'd3180f'),
+                    ));
+
+                $styleArray = array_merge($styleArray, $styleArrayAllSchedules);
+            }
+
+            if (isset($values['showallschedules']))  {
+                unset($values['showallschedules']);
+            }
+
             foreach ($values as $value) {
                 $sheet->setCellValueByColumnAndRow($x, $y, $value);
                 $style = $sheet->getStyleByColumnAndRow($x, $y);
