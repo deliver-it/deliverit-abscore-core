@@ -235,7 +235,6 @@ class XlsModel extends ViewModel
         $originalX = $x = (int)$x;
         $y = (int)$y;
 
-        $styleArray = $this->getBodyStyle();
         foreach ($data as &$values) {
             $styleArray = $this->getBodyStyle();
 
