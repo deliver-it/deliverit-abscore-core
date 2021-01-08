@@ -237,9 +237,7 @@ class XlsModel extends ViewModel
                 $styleArray = array_merge($styleArray, $styleArrayAllSchedules);
             }
 
-            if (isset($values['showallschedules']))  {
-                unset($values['showallschedules']);
-            }
+            $this->destroyVariablesUnset($values);
 
             foreach ($values as $value) {
                 $sheet->setCellValueByColumnAndRow($x, $y, $value);
@@ -249,6 +247,22 @@ class XlsModel extends ViewModel
             }
             $x = $originalX;
             $y++;
+        }
+    }
+
+    /**
+     * Remove variaveis que não estão sendo usadas.
+     *
+     * @param $values
+     */
+    public function destroyVariablesUnset(&$values)
+    {
+        if (isset($values['showallschedules']))  {
+            unset($values['showallschedules']);
+        }
+
+        if (isset($values['id'])) {
+            unset($values['id']);
         }
     }
 
