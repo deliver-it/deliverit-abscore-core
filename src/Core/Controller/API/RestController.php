@@ -225,7 +225,9 @@ class RestController extends AbstractRestfulController
     {
         $isDefaultPaginated = $this->isDefaultPaginated();
         $paginated = ((bool)$this->params()->fromQuery('show_all', !$isDefaultPaginated)) === false;
-        return $paginated;
+
+        $pagination = ((bool)$this->params()->fromQuery('pagination')) === false;
+        return $paginated && $pagination;
     }
 
 
