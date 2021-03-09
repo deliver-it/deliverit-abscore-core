@@ -227,16 +227,7 @@ class XlsModel extends ViewModel
         foreach ($data as &$values) {
             $styleArray = $this->getBodyStyle();
 
-            /** Check the content before coloring cell. */
-            if (isset($values['showallschedules']) && !empty($values['showallschedules'])) {
-                $styleArrayAllSchedules = array(
-                    'font'  => array(
-                        'color' => array('rgb' => 'd3180f'),
-                    ));
-
-                $styleArray = array_merge($styleArray, $styleArrayAllSchedules);
-            }
-
+            $this->setStyleInVariables($values, $styleArray);
             $this->destroyVariablesUnset($values);
 
             foreach ($values as $value) {
@@ -250,6 +241,28 @@ class XlsModel extends ViewModel
         }
     }
 
+    public function setStyleInVariables($variable, &$styleArray)
+    {
+        /** Check the content before coloring cell. */
+        if (isset($variable['showallschedules']) && !empty($variable['showallschedules'])) {
+            $styleArrayAllSchedules = array(
+                'font'  => array(
+                    'color' => array('rgb' => 'd3180f'),
+                ));
+
+            $styleArray = array_merge($styleArray, $styleArrayAllSchedules);
+        }
+
+        if (isset($variable['workdayIsNotUseful']) && !empty($variable['workdayIsNotUseful'])) {
+            $styleArrayAllSchedules = array(
+                'font'  => array(
+                    'color' => array('rgb' => 'd3180f'),
+                ));
+
+            $styleArray = array_merge($styleArray, $styleArrayAllSchedules);
+        }
+    }
+
     /**
      * Remove variaveis que não estão sendo usadas.
      *
@@ -260,6 +273,11 @@ class XlsModel extends ViewModel
         if (isset($values['showallschedules']))  {
             unset($values['showallschedules']);
         }
+
+        if (isset($values['workdayIsNotUseful']))  {
+            unset($values['workdayIsNotUseful']);
+        }
+
 
         if (isset($values['id'])) {
             unset($values['id']);
