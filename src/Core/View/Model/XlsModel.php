@@ -256,7 +256,7 @@ class XlsModel extends ViewModel
         if (isset($variable['workdayIsNotUseful']) && !empty($variable['workdayIsNotUseful'])) {
             $styleArrayAllSchedules = array(
                 'font'  => array(
-                    'color' => array('rgb' => 'd3180f'),
+                    'color' => array('rgb' => 'ffa500'),
                 ));
 
             $styleArray = array_merge($styleArray, $styleArrayAllSchedules);
