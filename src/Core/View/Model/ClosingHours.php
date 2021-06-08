@@ -121,13 +121,13 @@ class ClosingHours extends XlsModel
      * @access public
      * @return $this
      */
-    public function setBody(array $data, &$x = 0, &$y=2)
+    public function setBody(array $data, $x = 0, $y=2)
     {
         $sheet = $this->getXlsDocument()->setActiveSheetIndex(0);
         $originalX = $x = (int)$x;
         $y = (int)$y;
 
-        foreach ($data as $name => &$values) {
+        foreach ($data as &$values) {
             $styleArray = $this->getBodyStyle();
 
             $this->setStyleInVariables($values, $styleArray);
